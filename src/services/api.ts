@@ -46,6 +46,7 @@ function createApiClient(baseURL: string, options: CreateApiClientOptions = {}) 
     '/api/v1/login',
     '/api/v1/login/admin-masjid',
     '/api/v1/login/admin-pusat',
+    '/api/v1/login/admin-kua',
     '/api/v1/register/user',
     '/api/v1/logout',
   ];

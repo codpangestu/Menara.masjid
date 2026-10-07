@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useAuthStore } from '../../store/authStore';
 import {
   LogIn,
   X,
@@ -26,6 +27,18 @@ export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+
+  /**
+   * Microfinance dilindungi ProtectedRoute (admin-masjid). Kalau belum login,
+   * arahkan LANGSUNG ke /login dengan state.from → setelah login user mendarat
+   * di /microfinance; ProtectedRoute tetap mem-validasi role (role lain →
+   * dashboard default masing-masing). Fix #48.
+   */
+  const linkTarget = (link: { name: string; path: string }) =>
+    link.name === 'Microfinance' && !isAuthenticated
+      ? { to: '/login', state: { from: { pathname: link.path } } as { from: { pathname: string } } }
+      : { to: link.path, state: undefined };
 
   // Throttled scroll handler via requestAnimationFrame
   useEffect(() => {
@@ -160,10 +173,13 @@ export default function Navbar() {
                   />
                 </button>
                 <div className="absolute top-full left-0 mt-1 w-48 bg-white rounded-xl shadow-lg border border-[rgba(0,0,0,0.08)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 translate-y-1 group-hover:translate-y-0 overflow-hidden">
-                  {navSecondaryLinks.map((link) => (
+                  {navSecondaryLinks.map((link) => {
+                    const target = linkTarget(link);
+                    return (
                     <Link
                       key={link.path}
-                      to={link.path}
+                      to={target.to}
+                      state={target.state}
                       className={`flex items-center gap-2 px-4 py-2.5 text-sm transition-colors duration-150 ${isActive(link.path)
                           ? 'text-[#28A71A] bg-[#EAF6E8]'
                           : 'text-[#555555] hover:bg-[#F0F4F8] hover:text-[#303030]'
@@ -174,7 +190,8 @@ export default function Navbar() {
                       {link.name === 'Microfinance' && <HandCoins size={14} />}
                       {link.name}
                     </Link>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -271,10 +288,12 @@ export default function Navbar() {
               </p>
               {[...navLinks, ...navSecondaryLinks].map((link, index) => {
                 const active = isActive(link.path);
+                const target = linkTarget(link);
                 return (
                   <Link
                     key={link.path}
-                    to={link.path}
+                    to={target.to}
+                    state={target.state}
                     onClick={() => setIsOpen(false)}
                     className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${active
                         ? 'bg-[#EAF6E8] text-[#28A71A]'

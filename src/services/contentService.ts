@@ -8,6 +8,21 @@ import type {
 } from '../types';
 
 export const contentService = {
+  // ===== Publikasi publik (kajian/acara/cerita/donasi — Fix #48) =====
+  getAcara: async (params: { judul?: string; page?: number; per_page?: number } = {}) => {
+    const response = await contentApi.get<ApiResponse<ContentItem[]>>('/api/v1/acara', { params });
+    return response.data;
+  },
+
+  getCerita: async (params: { judul?: string; page?: number; per_page?: number } = {}) => {
+    const response = await contentApi.get<ApiResponse<ContentItem[]>>('/api/v1/cerita', { params });
+    return response.data;
+  },
+
+  getDonasi: async (params: { judul?: string; page?: number; per_page?: number } = {}) => {
+    const response = await contentApi.get<ApiResponse<ContentItem[]>>('/api/v1/donasi', { params });
+    return response.data;
+  },
   // Home
   getHome: async () => {
     const response = await contentApi.get<ApiResponse<any>>('/api/v1/home');
@@ -36,26 +51,11 @@ export const contentService = {
     return response.data;
   },
 
-  // Acara
-  getAcara: async () => {
-    const response = await contentApi.get<ApiResponse<Acara[]>>('/api/v1/acara');
-    return response.data;
-  },
+  // Acara/Cerita/Donasi versi lama (tanpa params) dihapus — diganti versi
+  // dengan params di atas file (Fix #48; dulu memanggil route yang belum ada)
 
   getAcaraBySlug: async (slug: string) => {
     const response = await contentApi.get<ApiResponse<Acara>>(`/api/v1/acara/${slug}`);
-    return response.data;
-  },
-
-  // Cerita
-  getCerita: async () => {
-    const response = await contentApi.get<ApiResponse<ContentItem[]>>('/api/v1/cerita');
-    return response.data;
-  },
-
-  // Donasi
-  getDonasi: async () => {
-    const response = await contentApi.get<ApiResponse<Donasi[]>>('/api/v1/donasi');
     return response.data;
   },
 

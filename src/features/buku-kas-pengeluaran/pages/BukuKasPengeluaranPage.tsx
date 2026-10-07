@@ -30,6 +30,9 @@ function formatDate(dateStr: string | undefined): string {
 export default function BukuKasPengeluaranPage() {
   const [search, setSearch] = useState('');
   const [jenisDanaFilter, setJenisDanaFilter] = useState('');
+  const [labelInfoDanaFilter, setLabelInfoDanaFilter] = useState('');
+  const [startDateFilter, setStartDateFilter] = useState('');
+  const [endDateFilter, setEndDateFilter] = useState('');
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
   const [modalOpen, setModalOpen] = useState(false);
@@ -41,6 +44,9 @@ export default function BukuKasPengeluaranPage() {
     per_page: perPage,
     search: search || undefined,
     id_jenis_dana: jenisDanaFilter ? Number(jenisDanaFilter) : undefined,
+    id_label_info_dana: labelInfoDanaFilter ? Number(labelInfoDanaFilter) : undefined,
+    start_date: startDateFilter || undefined,
+    end_date: endDateFilter || undefined,
   });
 
   const { data: masterData } = useMasterData();
@@ -67,6 +73,17 @@ export default function BukuKasPengeluaranPage() {
       value: jenisDanaFilter,
       onChange: (v) => {
         setJenisDanaFilter(v);
+        setPage(1);
+      },
+    },
+    {
+      key: 'label_info_dana',
+      label: 'Label Info Dana',
+      placeholder: 'Semua Label Info Dana',
+      options: (masterData?.labelInfoDana || []).map((d) => ({ value: String(d.id), label: d.nama })),
+      value: labelInfoDanaFilter,
+      onChange: (v) => {
+        setLabelInfoDanaFilter(v);
         setPage(1);
       },
     },
@@ -275,6 +292,18 @@ export default function BukuKasPengeluaranPage() {
         searchQuery={search}
         onSearch={handleSearch}
         filters={filters}
+        dateRange={{
+          startValue: startDateFilter,
+          endValue: endDateFilter,
+          onStartChange: (v) => {
+            setStartDateFilter(v);
+            setPage(1);
+          },
+          onEndChange: (v) => {
+            setEndDateFilter(v);
+            setPage(1);
+          },
+        }}
         onAdd={handleAdd}
         addLabel="Tambah Pengeluaran"
         page={page}

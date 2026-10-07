@@ -1,4 +1,4 @@
-import { masjidApi } from './api';
+import { masjidApi, contentApi } from './api';
 import type {
   ApiResponse,
   Masjid,
@@ -29,13 +29,26 @@ export const masjidService = {
   },
 
   getMasjidBySlug: async (slug: string) => {
-    const response = await masjidApi.get<ApiResponse<MasjidDetail>>(`/api/v1/masjid/${slug}`);
+    // Detail publik masjid ada di CONTENT SERVICE (8003) — route /masjid/{slug}
+    // (bukan Masjid Service 8002 yang butuh auth). Lihat CONTEXT.md Fix #48.
+    const response = await contentApi.get<ApiResponse<MasjidDetail>>(`/api/v1/masjid/${slug}`);
     return response.data;
   },
 
-  searchMasjid: async (nama: string) => {
-    const response = await masjidApi.get<ApiResponse<Masjid[]>>('/api/v1/masjid/search', {
-      params: { nama },
+  searchMasjid: async (params: {
+    nama?: string;
+    jenis?: string;
+    tipologi?: string;
+    id_provinsi?: number;
+    id_kabupaten_kota?: number;
+    id_kecamatan?: number;
+    limit?: number;
+  }) => {
+    // Pencarian masjid PUBLIK ada di CONTENT SERVICE (8003) — route /masjid/search.
+    // Bug pra-eksisting (Fix #48): dulu memanggil masjidApi (8002) yang tidak punya
+    // route ini → 404; dan route /masjid/search di 8003 tertangkap /masjid/{slug}.
+    const response = await contentApi.get<ApiResponse<Masjid[]>>('/api/v1/masjid/search', {
+      params,
     });
     return response.data;
   },

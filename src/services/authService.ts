@@ -6,16 +6,23 @@ import type {
   RegisterRequest,
   RegisterResponse,
   UserProfile,
-  UserRole,
   UpdateProfileResponse,
   ChangePasswordResponse,
 } from '../types';
 
+// Role yang benar-benar punya opsi di dropdown login (LoginPage.tsx).
+// Admin KUA punya opsi + endpoint sendiri (khusus id_level 13) sehingga
+// terpisah dari "Admin BAZNAS". Admin Daerah (11) & Admin Kab (12) TIDAK punya
+// opsi login sendiri — keduanya login lewat opsi "Admin BAZNAS", lalu di-infer
+// ulang dari response (lihat inferRoleFromUser).
+export type LoginableRole = 'admin-masjid' | 'admin-baznas' | 'admin-kua';
+
 // Map role to login endpoint (sesuai kontrak Auth Service 8001)
 // Role 'admin-baznas' tetap memanggil endpoint backend /admin-pusat (nama endpoint backend tidak berubah).
-const ROLE_ENDPOINT: Record<UserRole, string> = {
+const ROLE_ENDPOINT: Record<LoginableRole, string> = {
   'admin-masjid': '/api/v1/login/admin-masjid',
   'admin-baznas': '/api/v1/login/admin-pusat',
+  'admin-kua': '/api/v1/login/admin-kua',
 };
 
 export const authService = {
@@ -24,8 +31,11 @@ export const authService = {
    * Role final di-infer dari response user (jalur_akses + id_level) karena
    * backend tidak mengirim field `role` — mis. login lewat endpoint umum
    * (/login) oleh admin pusat harus tetap terdeteksi sebagai 'admin-pusat'.
+   * Untuk opsi 'admin-kua', backend menolak akun non-KUA (dan sebaliknya
+   * opsi 'admin-baznas' menolak akun KUA), jadi pemisahan tetap tegas walau
+   * role final tetap di-infer dari id_level.
    */
-  login: async (data: LoginRequest, role: UserRole) => {
+  login: async (data: LoginRequest, role: LoginableRole) => {
     const endpoint = ROLE_ENDPOINT[role];
     const response = await authApi.post<LoginResponse>(endpoint, data);
     if (response.data.access_token) {

@@ -15,27 +15,46 @@ import {
 import { toast } from 'sonner';
 import { adminService } from '../../services/adminService';
 import { masjidService } from '../../services/masjidService';
-import type { UserListItem, Masjid, Provinsi, KabupatenKota } from '../../types';
+import type { UserListItem, Masjid, Provinsi, KabupatenKota, Kecamatan } from '../../types';
 
-type LevelFilter = 'all' | 'admin-baznas' | 'admin-masjid' | 'pengguna';
+type LevelFilter =
+  | 'all' | 'admin-baznas' | 'admin-masjid' | 'admin-daerah' | 'admin-kab' | 'admin-kua' | 'pengguna';
+
+// "Anak" Admin BAZNAS yang scope-nya dipersempit ke wilayah tertentu.
+// id 11/12/13 mengikuti baris `levels` LEGACY yang sudah ada di DB (10=Admin
+// BAZNAS Pusat, 11=Admin BAZNAS Provinsi, 12=Admin BAZNAS Kabupaten Kota; 13
+// sebelumnya placeholder tanpa user, dipakai utk Admin KUA/kecamatan).
+// JANGAN pakai id 4/5/6 — sudah dipakai data legacy lain (Anggota/Admin
+// Masjid/Admin Monitor Masjid) dengan user asli.
+const SCOPED_ADMIN_LEVELS = [11, 12, 13];
 
 const LEVEL_LABEL: Record<number, string> = {
   1: 'Admin BAZNAS',
   2: 'Admin Masjid',
   3: 'Pengguna',
+  11: 'Admin Daerah',
+  12: 'Admin Kab',
+  13: 'Admin KUA',
 };
 
 const LEVEL_BADGE: Record<number, string> = {
   1: 'bg-[#F3E8FF] text-[#7C3AED]',
   2: 'bg-[#E6F9F0] text-[#006844]',
   3: 'bg-[#EAF2FF] text-[#2B7FFF]',
+  11: 'bg-[#E0F2FE] text-[#0369A1]',
+  12: 'bg-[#FEF3C7] text-[#B45309]',
+  13: 'bg-[#FCE7F3] text-[#BE185D]',
 };
 
 function matchesLevelFilter(user: UserListItem, filter: LevelFilter): boolean {
   if (filter === 'all') return true;
   if (filter === 'admin-baznas') return user.id_level === 1;
   if (filter === 'admin-masjid') return user.id_level === 2;
-  return user.id_level !== 1 && user.id_level !== 2;
+  if (filter === 'admin-daerah') return user.id_level === 11;
+  if (filter === 'admin-kab') return user.id_level === 12;
+  if (filter === 'admin-kua') return user.id_level === 13;
+  // Pengguna = bukan salah satu dari 5 level admin di atas
+  return !user.id_level || (user.id_level !== 1 && user.id_level !== 2 && !SCOPED_ADMIN_LEVELS.includes(user.id_level));
 }
 
 export default function KelolaPenggunaPage() {
@@ -55,8 +74,39 @@ export default function KelolaPenggunaPage() {
 
   // Modal promosi
   const [promoteTarget, setPromoteTarget] = useState<UserListItem | null>(null);
+  const [promoteLevel, setPromoteLevel] = useState(2);
+  const [promoteRoleChoice, setPromoteRoleChoice] = useState<Record<number, number>>({});
   const [selectedMasjid, setSelectedMasjid] = useState('');
   const [promoteLoading, setPromoteLoading] = useState(false);
+
+  // Dropdown wilayah cascading KHUSUS modal promosi (terpisah dari filter di atas)
+  const [modalProvinsi, setModalProvinsi] = useState('');
+  const [modalKab, setModalKab] = useState('');
+  const [modalKec, setModalKec] = useState('');
+  const [modalKabList, setModalKabList] = useState<KabupatenKota[]>([]);
+  const [modalKecList, setModalKecList] = useState<Kecamatan[]>([]);
+
+  useEffect(() => {
+    if (modalProvinsi) {
+      masjidService.getKabupatenKota(Number(modalProvinsi)).then((res) => {
+        if (res?.data) setModalKabList(res.data);
+      });
+    } else {
+      setModalKabList([]);
+    }
+    setModalKab('');
+  }, [modalProvinsi]);
+
+  useEffect(() => {
+    if (modalKab) {
+      masjidService.getKecamatan(Number(modalKab)).then((res) => {
+        if (res?.data) setModalKecList(res.data);
+      });
+    } else {
+      setModalKecList([]);
+    }
+    setModalKec('');
+  }, [modalKab]);
 
   // Fetch provinsi on mount
   useEffect(() => {
@@ -157,39 +207,63 @@ export default function KelolaPenggunaPage() {
   const counts = {
     total: users.length,
     adminMasjid: users.filter((u) => u.id_level === 2).length,
-    pengguna: users.filter((u) => u.id_level !== 1 && u.id_level !== 2).length,
+    pengguna: users.filter((u) => matchesLevelFilter(u, 'pengguna')).length,
     nonaktif: users.filter((u) => u.status_aktif !== 1).length,
   };
 
-  const openPromoteModal = (user: UserListItem) => {
+  const openPromoteModal = (user: UserListItem, level: number) => {
     setPromoteTarget(user);
+    setPromoteLevel(level);
     setSelectedMasjid(user.id_jalur_akses || '');
+    setModalProvinsi('');
+    setModalKab('');
+    setModalKec('');
   };
 
   const handlePromote = async () => {
     if (!promoteTarget) return;
-    if (!selectedMasjid) {
+    if (promoteLevel === 2 && !selectedMasjid) {
       toast.error('Pilih masjid terlebih dahulu');
       return;
     }
+    if (promoteLevel === 11 && !modalProvinsi) {
+      toast.error('Pilih provinsi terlebih dahulu');
+      return;
+    }
+    if (promoteLevel === 12 && (!modalProvinsi || !modalKab)) {
+      toast.error('Pilih provinsi dan kabupaten/kota terlebih dahulu');
+      return;
+    }
+    if (promoteLevel === 13 && (!modalProvinsi || !modalKab || !modalKec)) {
+      toast.error('Pilih provinsi, kabupaten/kota, dan kecamatan terlebih dahulu');
+      return;
+    }
+
     setPromoteLoading(true);
     try {
-      const res = await adminService.updateUser(promoteTarget.id_user, {
-        id_level: 2,
-        id_jalur_akses: selectedMasjid,
-      });
+      const payload =
+        promoteLevel === 2
+          ? { id_level: 2, id_jalur_akses: selectedMasjid }
+          : promoteLevel === 11
+            ? { id_level: 11, id_provinsi: Number(modalProvinsi) }
+            : promoteLevel === 12
+              ? { id_level: 12, id_provinsi: Number(modalProvinsi), id_kabupaten_kota: Number(modalKab) }
+              : { id_level: 13, id_provinsi: Number(modalProvinsi), id_kabupaten_kota: Number(modalKab), id_kecamatan: Number(modalKec) };
+
+      const res = await adminService.updateUser(promoteTarget.id_user, payload);
       if (res && (res.status_code === '000' || res.status === 'Sukses')) {
-        const masjid = masjids.find((m: Masjid) => m.id_masjid === selectedMasjid);
-        toast.success(`${promoteTarget.nama} kini menjadi Admin Masjid`);
+        const levelLabel = LEVEL_LABEL[promoteLevel] || 'Admin';
+        const masjid = promoteLevel === 2 ? masjids.find((m: Masjid) => m.id_masjid === selectedMasjid) : undefined;
+        toast.success(`${promoteTarget.nama} kini menjadi ${levelLabel}`);
         setUsers((prev) =>
           prev.map((u) =>
             u.id_user === promoteTarget.id_user
               ? {
                   ...u,
-                  id_level: 2,
-                  nama_level: 'Admin Masjid',
-                  id_jalur_akses: selectedMasjid,
-                  nama_masjid: masjid?.nama_masjid || u.nama_masjid,
+                  id_level: promoteLevel,
+                  nama_level: levelLabel,
+                  id_jalur_akses: promoteLevel === 2 ? selectedMasjid : '',
+                  nama_masjid: promoteLevel === 2 ? (masjid?.nama_masjid || u.nama_masjid) : undefined,
                 }
               : u
           )
@@ -342,6 +416,9 @@ export default function KelolaPenggunaPage() {
           <option value="all">Semua Level</option>
           <option value="admin-baznas">Admin BAZNAS</option>
           <option value="admin-masjid">Admin Masjid</option>
+          <option value="admin-daerah">Admin Daerah</option>
+          <option value="admin-kab">Admin Kab</option>
+          <option value="admin-kua">Admin KUA</option>
           <option value="pengguna">Pengguna</option>
         </select>
         {/* Region filters */}
@@ -422,9 +499,10 @@ export default function KelolaPenggunaPage() {
               </thead>
               <tbody className="divide-y divide-[#F0F4F8]">
                 {filteredUsers.map((user) => {
-                  const isPengguna = !user.id_level || user.id_level === 3;
+                  const isPengguna = matchesLevelFilter(user, 'pengguna');
                   const isAdminMasjid = user.id_level === 2;
                   const isAdminBaznas = user.id_level === 1;
+                  const isScopedAdmin = !!user.id_level && SCOPED_ADMIN_LEVELS.includes(user.id_level);
                   const level = user.id_level ?? 3;
                   const active = user.status_aktif === 1;
                   const busy = actionLoading === user.id_user;
@@ -438,7 +516,9 @@ export default function KelolaPenggunaPage() {
                                 ? 'bg-[#7C3AED]'
                                 : isAdminMasjid
                                   ? 'bg-[#006844]'
-                                  : 'bg-[#2B7FFF]'
+                                  : isScopedAdmin
+                                    ? 'bg-[#0369A1]'
+                                    : 'bg-[#2B7FFF]'
                             }`}
                           >
                             {user.nama?.charAt(0)?.toUpperCase() || 'U'}
@@ -494,17 +574,36 @@ export default function KelolaPenggunaPage() {
                           ) : (
                             <>
                               {isPengguna && (
-                                <button
-                                  onClick={() => openPromoteModal(user)}
-                                  disabled={busy}
-                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-[#28A71A] hover:bg-[#1C7712] disabled:bg-[#B0B0B0] text-white rounded-lg text-xs font-medium transition-colors"
-                                  style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-                                >
-                                  <ShieldCheck size={14} />
-                                  Jadikan Admin
-                                </button>
+                                <>
+                                  <select
+                                    value={promoteRoleChoice[user.id_user] ?? 2}
+                                    onChange={(e) =>
+                                      setPromoteRoleChoice((prev) => ({
+                                        ...prev,
+                                        [user.id_user]: Number(e.target.value),
+                                      }))
+                                    }
+                                    disabled={busy}
+                                    className="px-2 py-1.5 border border-[#D4D4D4] rounded-lg text-xs bg-white focus:outline-none focus:ring-2 focus:ring-[#28A71A]/20"
+                                    style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                                  >
+                                    <option value={2}>Admin Masjid</option>
+                                    <option value={11}>Admin Daerah</option>
+                                    <option value={12}>Admin Kab</option>
+                                    <option value={13}>Admin KUA</option>
+                                  </select>
+                                  <button
+                                    onClick={() => openPromoteModal(user, promoteRoleChoice[user.id_user] ?? 2)}
+                                    disabled={busy}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-[#28A71A] hover:bg-[#1C7712] disabled:bg-[#B0B0B0] text-white rounded-lg text-xs font-medium transition-colors"
+                                    style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                                  >
+                                    <ShieldCheck size={14} />
+                                    Jadikan
+                                  </button>
+                                </>
                               )}
-                              {isAdminMasjid && (
+                              {(isAdminMasjid || isScopedAdmin) && (
                                 <button
                                   onClick={() => handleDemote(user)}
                                   disabled={busy}
@@ -552,7 +651,7 @@ export default function KelolaPenggunaPage() {
               </div>
               <div>
                 <h3 className="text-base font-semibold text-[#303030]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                  Jadikan Admin Masjid
+                  Jadikan {LEVEL_LABEL[promoteLevel] || 'Admin'}
                 </h3>
                 <p className="text-xs text-text-gray" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
                   {promoteTarget.nama} • {promoteTarget.email}
@@ -560,35 +659,123 @@ export default function KelolaPenggunaPage() {
               </div>
             </div>
 
-            <label
-              className="block text-sm font-medium text-[#303030] mb-2"
-              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-            >
-              Pilih Masjid yang Dikelola
-            </label>
-            <div className="relative">
-              <Building2 size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#B0B0B0]" />
-              <select
-                value={selectedMasjid}
-                onChange={(e) => setSelectedMasjid(e.target.value)}
-                disabled={promoteLoading}
-                className="w-full pl-10 pr-8 py-2.5 border border-[#D4D4D4] rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#28A71A]/20 appearance-none"
-                style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-              >
-                <option value="">— Pilih masjid —</option>
-                {masjids.map((m) => (
-                  <option key={m.id_masjid} value={m.id_masjid}>
-                    {m.nama_masjid}
-                    {m.kode_org_baznas ? ` (${m.kode_org_baznas})` : ''}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#B0B0B0] pointer-events-none" />
-            </div>
-            {masjids.length === 0 && (
-              <p className="text-xs text-amber-600 mt-2" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                Belum ada data masjid terdaftar. Tambahkan masjid dulu di Data Masjid.
-              </p>
+            {promoteLevel === 2 ? (
+              <>
+                <label
+                  className="block text-sm font-medium text-[#303030] mb-2"
+                  style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                >
+                  Pilih Masjid yang Dikelola
+                </label>
+                <div className="relative">
+                  <Building2 size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#B0B0B0]" />
+                  <select
+                    value={selectedMasjid}
+                    onChange={(e) => setSelectedMasjid(e.target.value)}
+                    disabled={promoteLoading}
+                    className="w-full pl-10 pr-8 py-2.5 border border-[#D4D4D4] rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#28A71A]/20 appearance-none"
+                    style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                  >
+                    <option value="">— Pilih masjid —</option>
+                    {masjids.map((m) => (
+                      <option key={m.id_masjid} value={m.id_masjid}>
+                        {m.nama_masjid}
+                        {m.kode_org_baznas ? ` (${m.kode_org_baznas})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#B0B0B0] pointer-events-none" />
+                </div>
+                {masjids.length === 0 && (
+                  <p className="text-xs text-amber-600 mt-2" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                    Belum ada data masjid terdaftar. Tambahkan masjid dulu di Data Masjid.
+                  </p>
+                )}
+              </>
+            ) : (
+              <div className="space-y-3">
+                <div>
+                  <label
+                    className="block text-sm font-medium text-[#303030] mb-2"
+                    style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                  >
+                    Provinsi
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={modalProvinsi}
+                      onChange={(e) => setModalProvinsi(e.target.value)}
+                      disabled={promoteLoading}
+                      className="w-full pl-4 pr-8 py-2.5 border border-[#D4D4D4] rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#28A71A]/20 appearance-none"
+                      style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                    >
+                      <option value="">— Pilih provinsi —</option>
+                      {provinsiList.map((p) => (
+                        <option key={String(p.id)} value={String(p.id)}>
+                          {p.nama_provinsi}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#B0B0B0] pointer-events-none" />
+                  </div>
+                </div>
+
+                {(promoteLevel === 12 || promoteLevel === 13) && (
+                  <div>
+                    <label
+                      className="block text-sm font-medium text-[#303030] mb-2"
+                      style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                    >
+                      Kabupaten/Kota
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={modalKab}
+                        onChange={(e) => setModalKab(e.target.value)}
+                        disabled={promoteLoading || !modalProvinsi}
+                        className="w-full pl-4 pr-8 py-2.5 border border-[#D4D4D4] rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#28A71A]/20 appearance-none disabled:opacity-50 disabled:bg-[#F5F5F5]"
+                        style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                      >
+                        <option value="">— Pilih kabupaten/kota —</option>
+                        {modalKabList.map((k) => (
+                          <option key={String(k.id)} value={String(k.id)}>
+                            {k.nama_kabupaten_kota}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#B0B0B0] pointer-events-none" />
+                    </div>
+                  </div>
+                )}
+
+                {promoteLevel === 13 && (
+                  <div>
+                    <label
+                      className="block text-sm font-medium text-[#303030] mb-2"
+                      style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                    >
+                      Kecamatan
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={modalKec}
+                        onChange={(e) => setModalKec(e.target.value)}
+                        disabled={promoteLoading || !modalKab}
+                        className="w-full pl-4 pr-8 py-2.5 border border-[#D4D4D4] rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#28A71A]/20 appearance-none disabled:opacity-50 disabled:bg-[#F5F5F5]"
+                        style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                      >
+                        <option value="">— Pilih kecamatan —</option>
+                        {modalKecList.map((k) => (
+                          <option key={String(k.id)} value={String(k.id)}>
+                            {k.nama_kecamatan}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#B0B0B0] pointer-events-none" />
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
 
             <div className="flex gap-3 mt-6">

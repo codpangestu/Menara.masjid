@@ -46,17 +46,36 @@ const sidebarMenu: SidebarItem[] = [
     roles: ['admin-baznas'],
   },
   {
+    label: 'Dashboard Daerah',
+    icon: BarChart3,
+    path: '/dashboard-daerah',
+    roles: ['admin-daerah'],
+  },
+  {
+    label: 'Dashboard Kab',
+    icon: BarChart3,
+    path: '/dashboard-kab',
+    roles: ['admin-kab'],
+  },
+  {
+    label: 'Dashboard KUA',
+    icon: BarChart3,
+    path: '/dashboard-kua',
+    roles: ['admin-kua'],
+  },
+  {
     label: 'Data Masjid',
     icon: Building2,
     path: '/data-masjid/profil',
     roles: ['admin-masjid'],
   },
   {
-    // Admin BAZNAS: halaman daftar masjid nasional (bukan profil per masjid)
+    // Admin BAZNAS + anak-anaknya (Daerah/Kab/KUA): halaman daftar masjid
+    // (nasional untuk BAZNAS, otomatis ter-scope wilayah untuk 3 role lainnya)
     label: 'Data Masjid',
     icon: Building2,
     path: '/data-masjid/daftar',
-    roles: ['admin-baznas'],
+    roles: ['admin-baznas', 'admin-daerah', 'admin-kab', 'admin-kua'],
   },
   {
     label: 'Info Masjid',
@@ -86,7 +105,7 @@ const sidebarMenu: SidebarItem[] = [
     label: 'Data Pengurus',
     icon: Users,
     path: '/info-masjid/data-pengurus',
-    roles: ['admin-masjid', 'admin-baznas'],
+    roles: ['admin-masjid', 'admin-baznas', 'admin-daerah', 'admin-kab', 'admin-kua'],
   },
   {
     label: 'Data Anggota',
@@ -110,7 +129,7 @@ const sidebarMenu: SidebarItem[] = [
     label: 'Setting Akun',
     icon: Settings,
     path: '/setting-akun',
-    roles: ['admin-masjid', 'admin-baznas'],
+    roles: ['admin-masjid', 'admin-baznas', 'admin-daerah', 'admin-kab', 'admin-kua'],
   },
   {
     label: 'Pengajuan Masjid',
@@ -129,11 +148,17 @@ const sidebarMenu: SidebarItem[] = [
 const roleBadgeColors: Record<UserRole, string> = {
   'admin-masjid': 'bg-[#E6F9F0] text-[#006844]',
   'admin-baznas': 'bg-[#F3E8FF] text-[#7C3AED]',
+  'admin-daerah': 'bg-[#E0F2FE] text-[#0369A1]',
+  'admin-kab': 'bg-[#FEF3C7] text-[#B45309]',
+  'admin-kua': 'bg-[#FCE7F3] text-[#BE185D]',
 };
 
 const roleBadgeLabels: Record<UserRole, string> = {
   'admin-masjid': 'Admin Masjid',
   'admin-baznas': 'Admin BAZNAS',
+  'admin-daerah': 'Admin Daerah',
+  'admin-kab': 'Admin Kab',
+  'admin-kua': 'Admin KUA',
 };
 
 export default function DashboardLayout() {

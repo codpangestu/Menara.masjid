@@ -6,7 +6,7 @@ const API_KEY_HEADER = { 'x-api-key': API_KEY };
 
 export const bukuKasPengeluaranApi = {
   // ---- Transaksi ----
-  list: async (params: { page?: number; per_page?: number; search?: string; id_jenis_dana?: number; id_label_info_dana?: number }) => {
+  list: async (params: { page?: number; per_page?: number; search?: string; id_jenis_dana?: number; id_label_info_dana?: number; start_date?: string; end_date?: string }) => {
     const response = await transactionApi.get<{
       status: boolean;
       data: BukuKasPengeluaran[];

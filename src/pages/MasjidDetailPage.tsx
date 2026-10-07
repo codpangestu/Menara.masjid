@@ -1,90 +1,103 @@
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, MapPin, Phone, Mail, Globe, Users, Building2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ArrowLeft, MapPin, Phone, Mail, Users, Loader2, AlertCircle, Building2, Calendar } from 'lucide-react';
+import { masjidService } from '../services/masjidService';
 
-// Mock data — will be replaced with API call
-const masjidData: Record<string, {
-  id: string;
-  name: string;
-  city: string;
-  province: string;
-  description: string;
-  fullDescription: string;
-  address: string;
-  phone: string;
-  email: string;
-  website: string;
-  fasilitas: string[];
-  pengurus: { nama: string; jabatan: string }[];
-}> = {
-  'M001': {
-    id: 'M001',
-    name: 'Masjid Istiqlal',
-    city: 'Jakarta Pusat',
-    province: 'DKI Jakarta',
-    description: 'Masjid nasional terbesar di Indonesia',
-    fullDescription: 'Masjid Istiqlal adalah masjid nasional negara Republik Indonesia yang terletak di pusat ibu kota Jakarta. Masjid ini merupakan masjid terbesar di Asia Tenggara dan menjadi simbol toleransi beragama serta kebanggaan bangsa Indonesia.',
-    address: 'Jl. Taman Wijaya Kusuma, Ps. Baru, Kecamatan Sawah Besar, Kota Jakarta Pusat',
-    phone: '(021) 3811779',
-    email: 'info@istiqlal.or.id',
-    website: 'www.istiqlal.or.id',
-    fasilitas: ['Taman', 'Parkir Luas', 'Perpustakaan', 'Kantin', 'Ruang Serbaguna', 'Tempat Wudhu Luas', 'Lift'],
-    pengurus: [
-      { nama: 'Prof. Dr. H. Nasaruddin Umar', jabatan: 'Ketua Umum' },
-      { nama: 'Dr. H. KH. Ahmad Muhajir', jabatan: 'Sekretaris' },
-      { nama: 'H. M. Yusuf', jabatan: 'Bendahara' },
-    ],
-  },
-  'M002': {
-    id: 'M002',
-    name: 'Masjid Raya Al-Markaz',
-    city: 'Makassar',
-    province: 'Sulawesi Selatan',
-    description: 'Masjid kebanggaan masyarakat Makassar',
-    fullDescription: 'Masjid Raya Al-Markaz Al-Islami Makassar adalah salah satu masjid terbesar dan termegah di kawasan Indonesia Timur.',
-    address: 'Jl. Masjid Raya No. 1, Makassar',
-    phone: '(0411) 123456',
-    email: 'info@almarkaz.or.id',
-    website: 'www.almarkaz.or.id',
-    fasilitas: ['Taman', 'Parkir Luas', 'Perpustakaan', 'Kantin', 'Ruang Serbaguna', 'Tempat Wudhu Luas'],
-    pengurus: [
-      { nama: 'Dr. H. M. Arifin', jabatan: 'Ketua' },
-      { nama: 'H. A. Rahman', jabatan: 'Sekretaris' },
-    ],
-  },
-  'M003': {
-    id: 'M003',
-    name: 'Masjid Raya Baiturrahman',
-    city: 'Banda Aceh',
-    province: 'Aceh',
-    description: 'Masjid bersejarah dengan arsitektur megah',
-    fullDescription: 'Masjid Raya Baiturrahman adalah masjid bersejarah yang menjadi ikon Kota Banda Aceh. Dengan arsitektur megah bergaya Mughal dan Aceh.',
-    address: 'Jl. Muhammad Jam No. 1, Banda Aceh',
-    phone: '(0651) 23456',
-    email: 'info@baiturrahman.or.id',
-    website: 'www.baiturrahman.or.id',
-    fasilitas: ['Taman', 'Parkir Luas', 'Museum', 'Perpustakaan', 'Tempat Wudhu Luas'],
-    pengurus: [
-      { nama: 'H. M. Jamil', jabatan: 'Ketua' },
-      { nama: 'Drs. H. T. Zulkarnain', jabatan: 'Sekretaris' },
-      { nama: 'H. Nurdin AR', jabatan: 'Bendahara' },
-    ],
-  },
-};
+/** Shape response GET /api/v1/masjid/{slug} (Content Service 8003). */
+interface PublikMasjidDetail {
+  id_masjid?: string;
+  nama_masjid?: string | null;
+  slug_masjid?: string | null;
+  jenis_masjid?: string | null;
+  tipologi?: string | null;
+  alamat_masjid?: string | null;
+  deskripsi?: string | null;
+  nohp_masjid?: string | null;
+  email_masjid?: string | null;
+  fasilitas?: Array<{ id: number; nama: string }>;
+  kajian?: Array<{ id: number; judul: string; tanggal: string; penulis?: string }>;
+  acara?: Array<{ id: number; judul: string; tanggal: string; penulis?: string }>;
+}
 
 export default function MasjidDetailPage() {
-  const { id } = useParams<{ id: string }>();
-  const masjid = id ? masjidData[id] : undefined;
+  const { id } = useParams<{ id: string }>(); // id = slug masjid
+  const [masjid, setMasjid] = useState<PublikMasjidDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+  const [error, setError] = useState(false);
 
-  if (!masjid) {
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setNotFound(false);
+    setError(false);
+    setMasjid(null);
+    if (!id) {
+      setNotFound(true);
+      setLoading(false);
+      return;
+    }
+    masjidService
+      .getMasjidBySlug(id)
+      .then((res) => {
+        if (cancelled) return;
+        // 404 backend mengirim status_code="404" dengan data null — ApiResponse
+        // type frontend tidak punya status_code, jadi cukup cek data-nya.
+        if (!res?.data) {
+          setNotFound(true);
+        } else {
+          setMasjid(res.data as unknown as PublikMasjidDetail);
+        }
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setError(true);
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
+  const stripHtml = (html?: string | null) => (html ? html.replace(/<[^>]*>/g, '').trim() : '');
+
+  if (loading) {
+    return (
+      <div className="bg-[#FAFAFA] min-h-screen flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 size={32} className="animate-spin text-[#28A71A]" />
+          <span className="text-sm text-[#555]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+            Memuat profil masjid...
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-[#FAFAFA] min-h-screen flex items-center justify-center">
+        <div className="text-center px-6">
+          <AlertCircle size={48} className="text-[#EF4444] mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-[#303030] mb-2" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Terjadi Kesalahan</h2>
+          <p className="text-sm text-[#555] mb-6" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Gagal memuat profil masjid. Coba muat ulang halaman.</p>
+          <Link to="/masjid" className="btn-primary-green">Kembali ke Daftar Masjid</Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (notFound || !masjid) {
     return (
       <div className="bg-[#FAFAFA] min-h-screen flex items-center justify-center">
         <div className="text-center px-6">
           <div className="text-6xl mb-4">🔍</div>
           <h2 className="text-xl font-semibold text-[#303030] mb-2" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Masjid Tidak Ditemukan</h2>
           <p className="text-sm text-[#555] mb-6" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Masjid yang Anda cari tidak tersedia.</p>
-          <Link to="/masjid" className="btn-primary-green">
-            Kembali ke Daftar Masjid
-          </Link>
+          <Link to="/masjid" className="btn-primary-green">Kembali ke Daftar Masjid</Link>
         </div>
       </div>
     );
@@ -107,19 +120,33 @@ export default function MasjidDetailPage() {
           {/* Header Card */}
           <div className="bg-white border border-[rgba(0,0,0,0.1)] rounded-2xl overflow-hidden mb-6 card-hover">
             <div className="h-64 bg-gradient-to-br from-[#E6F9F0] to-[#EAF6E8] flex items-center justify-center relative">
-              <span className="text-8xl">{masjid.image}</span>
+              <span className="text-8xl">🕌</span>
+              {masjid.jenis_masjid && (
+                <span
+                  className={`absolute top-4 left-4 text-xs font-bold px-3 py-1.5 rounded-lg uppercase tracking-wide ${
+                    masjid.jenis_masjid === 'Musholla' ? 'bg-[#FF8C00]/90 text-white' : 'bg-[#28A71A]/90 text-white'
+                  }`}
+                  style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                >
+                  {masjid.jenis_masjid}
+                </span>
+              )}
             </div>
             <div className="p-6 md:p-8">
               <h1 className="text-2xl md:text-3xl font-semibold text-[#303030] mb-2" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                {masjid.name}
+                {masjid.nama_masjid || 'Tanpa Nama'}
               </h1>
-              <div className="flex items-center gap-2 text-sm text-[#555] mb-4">
-                <MapPin size={16} className="text-[#28A71A]" />
-                {masjid.city}, {masjid.province}
-              </div>
-              <p className="text-base text-[#303030] leading-relaxed" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                {masjid.fullDescription}
-              </p>
+              {masjid.alamat_masjid && (
+                <div className="flex items-start gap-2 text-sm text-[#555] mb-4">
+                  <MapPin size={16} className="text-[#28A71A] mt-0.5 flex-shrink-0" />
+                  <span>{masjid.alamat_masjid}</span>
+                </div>
+              )}
+              {stripHtml(masjid.deskripsi) && (
+                <p className="text-base text-[#303030] leading-relaxed" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                  {stripHtml(masjid.deskripsi)}
+                </p>
+              )}
             </div>
           </div>
 
@@ -131,34 +158,38 @@ export default function MasjidDetailPage() {
                 <span>Informasi Kontak</span>
               </div>
               <div className="space-y-4">
-                <div className="flex items-start gap-3">
-                  <MapPin size={16} className="text-[#28A71A] mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="text-xs text-[#555]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Alamat</p>
-                    <p className="text-sm text-[#303030]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{masjid.address}</p>
+                {masjid.alamat_masjid ? (
+                  <div className="flex items-start gap-3">
+                    <MapPin size={16} className="text-[#28A71A] mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="text-xs text-[#555]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Alamat</p>
+                      <p className="text-sm text-[#303030]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{masjid.alamat_masjid}</p>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Phone size={16} className="text-[#28A71A] mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="text-xs text-[#555]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Telepon</p>
-                    <p className="text-sm text-[#303030]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{masjid.phone}</p>
+                ) : null}
+                {masjid.nohp_masjid ? (
+                  <div className="flex items-start gap-3">
+                    <Phone size={16} className="text-[#28A71A] mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="text-xs text-[#555]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Telepon</p>
+                      <p className="text-sm text-[#303030]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{masjid.nohp_masjid}</p>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Mail size={16} className="text-[#28A71A] mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="text-xs text-[#555]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Email</p>
-                    <p className="text-sm text-[#303030]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{masjid.email}</p>
+                ) : null}
+                {masjid.email_masjid ? (
+                  <div className="flex items-start gap-3">
+                    <Mail size={16} className="text-[#28A71A] mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="text-xs text-[#555]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Email</p>
+                      <p className="text-sm text-[#303030]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{masjid.email_masjid}</p>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Globe size={16} className="text-[#28A71A] mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="text-xs text-[#555]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Website</p>
-                    <p className="text-sm text-[#28A71A] hover:underline cursor-pointer" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{masjid.website}</p>
-                  </div>
-                </div>
+                ) : null}
+                {!masjid.alamat_masjid && !masjid.nohp_masjid && !masjid.email_masjid && (
+                  <p className="text-sm text-[#555]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                    Informasi kontak belum dilengkapi admin masjid.
+                  </p>
+                )}
               </div>
             </div>
 
@@ -168,32 +199,59 @@ export default function MasjidDetailPage() {
                 <Building2 size={14} />
                 <span>Fasilitas</span>
               </div>
-              <div className="flex flex-wrap gap-2">
-                {masjid.fasilitas.map((fas, i) => (
-                  <span key={i} className="badge-sm">{fas}</span>
-                ))}
-              </div>
+              {masjid.fasilitas && masjid.fasilitas.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {masjid.fasilitas.map((fas) => (
+                    <span key={fas.id} className="badge-sm">{fas.nama}</span>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-[#555]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                  Fasilitas belum didata.
+                </p>
+              )}
             </div>
 
-            {/* Pengurus */}
+            {/* Kajian & Acara Terbaru dari masjid ini (data asli) */}
             <div className="md:col-span-2 bg-white border border-[rgba(0,0,0,0.1)] rounded-2xl p-6">
               <div className="badge-green mb-4 w-fit">
                 <Users size={14} />
-                <span>Pengurus Masjid</span>
+                <span>Kajian & Acara</span>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {masjid.pengurus.map((p, i) => (
-                  <div key={i} className="flex items-center gap-3 p-3 bg-[#FAFAFA] rounded-xl border border-[rgba(0,0,0,0.04)]">
-                    <div className="w-10 h-10 rounded-full bg-[#EAF6E8] flex items-center justify-center text-[#28A71A] font-semibold text-sm flex-shrink-0">
-                      {p.nama.charAt(0)}
+              {((masjid.kajian?.length ?? 0) + (masjid.acara?.length ?? 0)) > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {masjid.kajian?.slice(0, 4).map((k) => (
+                    <div key={`k-${k.id}`} className="flex items-start gap-3 p-3 bg-[#FAFAFA] rounded-xl border border-[rgba(0,0,0,0.04)]">
+                      <div className="w-9 h-9 rounded-full bg-[#EAF6E8] flex items-center justify-center text-[#28A71A] flex-shrink-0">
+                        <Calendar size={16} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-[#303030] truncate" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{k.judul}</p>
+                        <p className="text-xs text-[#555]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                          Kajian{k.tanggal ? ` • ${k.tanggal.slice(0, 10)}` : ''}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-medium text-[#303030]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{p.nama}</p>
-                      <p className="text-xs text-[#555]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{p.jabatan}</p>
+                  ))}
+                  {masjid.acara?.slice(0, 4).map((a) => (
+                    <div key={`a-${a.id}`} className="flex items-start gap-3 p-3 bg-[#FAFAFA] rounded-xl border border-[rgba(0,0,0,0.04)]">
+                      <div className="w-9 h-9 rounded-full bg-[#EAF6E8] flex items-center justify-center text-[#28A71A] flex-shrink-0">
+                        <Calendar size={16} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-[#303030] truncate" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{a.judul}</p>
+                        <p className="text-xs text-[#555]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                          Acara{a.tanggal ? ` • ${a.tanggal.slice(0, 10)}` : ''}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-[#555]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                  Belum ada kajian/acara yang dipublikasikan masjid ini.
+                </p>
+              )}
             </div>
           </div>
         </div>

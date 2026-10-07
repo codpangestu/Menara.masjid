@@ -25,6 +25,10 @@ export const adminService = {
       id_jalur_akses?: string;
       status_aktif?: number;
       kode_org_baznas?: string;
+      // Scope wilayah untuk promosi ke Admin Daerah/Kab/KUA (lihat CONTEXT.md)
+      id_provinsi?: number;
+      id_kabupaten_kota?: number;
+      id_kecamatan?: number;
     }
   ) => {
     const response = await authApi.put<UpdateUserResponse>(

@@ -6,7 +6,7 @@ import type { BukuKasPengeluaran } from '../types';
 const QUERY_KEY = 'bukukas-pengeluaran';
 const COMMAND_CENTER_KEY = 'bukukas-pengeluaran-command-center';
 
-export function useBukuKasPengeluaranList(params: { page?: number; per_page?: number; search?: string; id_jenis_dana?: number; id_label_info_dana?: number }) {
+export function useBukuKasPengeluaranList(params: { page?: number; per_page?: number; search?: string; id_jenis_dana?: number; id_label_info_dana?: number; start_date?: string; end_date?: string }) {
   return useQuery({
     queryKey: [QUERY_KEY, params],
     queryFn: () => bukuKasPengeluaranApi.list(params),

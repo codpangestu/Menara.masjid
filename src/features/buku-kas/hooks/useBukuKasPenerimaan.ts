@@ -6,7 +6,7 @@ import type { BukuKasPenerimaan } from '../types';
 const QUERY_KEY = 'bukukas-penerimaan';
 const COMMAND_CENTER_KEY = 'bukukas-command-center';
 
-export function useBukuKasPenerimaanList(params: { page?: number; per_page?: number; search?: string; id_jenis_dana?: number; id_label_info_dana?: number }) {
+export function useBukuKasPenerimaanList(params: { page?: number; per_page?: number; search?: string; id_jenis_dana?: number; id_label_info_dana?: number; start_date?: string; end_date?: string }) {
   return useQuery({
     queryKey: [QUERY_KEY, params],
     queryFn: () => bukuKasApi.list(params),

@@ -28,6 +28,9 @@ import ProfilMasjidPage from './features/profil-masjid/pages/ProfilMasjidPage';
 import PublikasiDashboardPage from './features/menu-publikasi/pages/PublikasiPage';
 import DashboardAdminMasjid from './pages/dashboard/DashboardAdminMasjid';
 import DashboardAdminBaznas from './pages/dashboard/DashboardAdminBaznas';
+import DashboardAdminDaerah from './pages/dashboard/DashboardAdminDaerah';
+import DashboardAdminKab from './pages/dashboard/DashboardAdminKab';
+import DashboardAdminKua from './pages/dashboard/DashboardAdminKua';
 import SettingAkunPage from './pages/SettingAkunPage';
 import DataKegiatanPage from './features/kegiatan-masjid/pages/DataKegiatanPage';
 import BukuAsetPage from './features/buku-aset/pages/BukuAsetPage';
@@ -150,11 +153,45 @@ function App() {
           />
         </Route>
 
+        {/* ========== DASHBOARD ADMIN DAERAH / KAB / KUA (anak Admin BAZNAS, scope wilayah) ========== */}
+        <Route
+          path="/dashboard-daerah"
+          element={
+            <ProtectedRoute allowedRoles={['admin-daerah']}>
+              <DashboardLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<DashboardAdminDaerah />} />
+        </Route>
+
+        <Route
+          path="/dashboard-kab"
+          element={
+            <ProtectedRoute allowedRoles={['admin-kab']}>
+              <DashboardLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<DashboardAdminKab />} />
+        </Route>
+
+        <Route
+          path="/dashboard-kua"
+          element={
+            <ProtectedRoute allowedRoles={['admin-kua']}>
+              <DashboardLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<DashboardAdminKua />} />
+        </Route>
+
         {/* Additional dashboard sub-routes will be added as features are built */}
         <Route
           path="/data-masjid"
           element={
-            <ProtectedRoute allowedRoles={['admin-masjid', 'admin-baznas']}>
+            <ProtectedRoute allowedRoles={['admin-masjid', 'admin-baznas', 'admin-daerah', 'admin-kab', 'admin-kua']}>
               <DashboardLayout />
             </ProtectedRoute>
           }
@@ -170,7 +207,7 @@ function App() {
           <Route
             path="daftar"
             element={
-              <ProtectedRoute allowedRoles={['admin-baznas']}>
+              <ProtectedRoute allowedRoles={['admin-baznas', 'admin-daerah', 'admin-kab', 'admin-kua']}>
                 <DataMasjidBaznasPage />
               </ProtectedRoute>
             }
@@ -212,7 +249,7 @@ function App() {
         <Route
           path="/info-masjid"
           element={
-            <ProtectedRoute allowedRoles={['admin-masjid', 'admin-baznas']}>
+            <ProtectedRoute allowedRoles={['admin-masjid', 'admin-baznas', 'admin-daerah', 'admin-kab', 'admin-kua']}>
               <DashboardLayout />
             </ProtectedRoute>
           }
@@ -220,7 +257,7 @@ function App() {
           <Route
             path="data-pengurus"
             element={
-              <ProtectedRoute allowedRoles={['admin-masjid', 'admin-baznas']}>
+              <ProtectedRoute allowedRoles={['admin-masjid', 'admin-baznas', 'admin-daerah', 'admin-kab', 'admin-kua']}>
                 <DataPengurusPage />
               </ProtectedRoute>
             }
@@ -327,7 +364,7 @@ function App() {
         <Route
           path="/setting-akun"
           element={
-            <ProtectedRoute allowedRoles={['admin-masjid', 'admin-baznas']}>
+            <ProtectedRoute allowedRoles={['admin-masjid', 'admin-baznas', 'admin-daerah', 'admin-kab', 'admin-kua']}>
               <DashboardLayout />
             </ProtectedRoute>
           }

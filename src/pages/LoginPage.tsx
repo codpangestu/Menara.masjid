@@ -1,10 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Eye, EyeOff, LogIn, ArrowLeft, Check, Mail, Lock, Building2, Landmark, ChevronDown } from 'lucide-react';
+import { Eye, EyeOff, LogIn, ArrowLeft, Check, Mail, Lock, Building2, Landmark, MapPin, ChevronDown } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
-import { authService } from '../services/authService';
+import { authService, type LoginableRole } from '../services/authService';
 import { ROLE_DASHBOARD_ROUTES } from '../types';
-import type { UserRole } from '../types';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -15,15 +14,20 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
-  const [selectedRole, setSelectedRole] = useState<UserRole>('admin-masjid');
+  const [selectedRole, setSelectedRole] = useState<LoginableRole>('admin-masjid');
   const [roleMenuOpen, setRoleMenuOpen] = useState(false);
   const [error, setError] = useState('');
   const roleMenuRef = useRef<HTMLDivElement>(null);
 
   // Definisikan di dalam komponen (lesson learned: hindari definisi module-level)
-  const ROLE_OPTIONS: { role: UserRole; label: string; desc: string; icon: React.ComponentType<{ size?: number; className?: string }> }[] = [
+  // Catatan: opsi "Admin BAZNAS" mencakup tiga tingkat sekaligus — Pusat
+  // (nasional), Provinsi (Admin Daerah) dan Kabupaten/Kota (Admin Kab) — karena
+  // ketiganya login lewat endpoint yang sama dan scope wilayahnya ditentukan
+  // server dari id_level akun. Hanya Admin KUA (kecamatan) yang dipisah.
+  const ROLE_OPTIONS: { role: LoginableRole; label: string; desc: string; icon: React.ComponentType<{ size?: number; className?: string }> }[] = [
     { role: 'admin-masjid', label: 'Admin Masjid', desc: 'Kelola masjid Anda', icon: Building2 },
-    { role: 'admin-baznas', label: 'Admin BAZNAS', desc: 'Kelola data nasional', icon: Landmark },
+    { role: 'admin-baznas', label: 'Admin BAZNAS', desc: 'Pusat, daerah & kabupaten/kota', icon: Landmark },
+    { role: 'admin-kua', label: 'Admin KUA', desc: 'Kelola data tingkat kecamatan', icon: MapPin },
   ];
 
   // Tutup dropdown saat klik di luar
@@ -196,6 +200,10 @@ export default function LoginPage() {
                   </div>
                 )}
               </div>
+              <p className="mt-2 text-xs text-gray-400 leading-relaxed" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                Pilih <span className="font-semibold text-gray-500">Admin BAZNAS</span> untuk akun Admin Pusat, Admin
+                Daerah (provinsi) maupun Admin Kabupaten/Kota.
+              </p>
             </div>
 
             {/* Error Alert */}

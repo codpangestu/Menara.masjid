@@ -128,8 +128,19 @@ export interface KelurahanDesa {
 }
 
 // Auth Types
-// Hanya 2 role: Admin Masjid & Admin BAZNAS (sebelumnya 'admin-pusat', diganti nama).
-export type UserRole = 'admin-masjid' | 'admin-baznas';
+// 5 role: Admin Masjid & Admin BAZNAS, + 3 role ber-scope wilayah
+// (Admin Daerah=provinsi, Admin Kab=kabupaten/kota, Admin KUA=kecamatan).
+// Dropdown login = 3 opsi: Admin Masjid, Admin BAZNAS, Admin KUA.
+// Admin KUA kini punya opsi + endpoint sendiri (`/login/admin-kua`, id_level
+// 13) dan TIDAK lagi bisa login lewat opsi "Admin BAZNAS" (ditolak backend).
+// Admin Daerah (11) & Admin Kab (12) tetap lewat opsi "Admin BAZNAS", lalu
+// di-infer dari id_level (lihat `inferRoleFromUser` di bawah).
+export type UserRole =
+  | 'admin-masjid'
+  | 'admin-baznas'
+  | 'admin-daerah'
+  | 'admin-kab'
+  | 'admin-kua';
 
 export interface LoginRequest {
   email: string;
@@ -155,12 +166,17 @@ export interface UserProfile {
   jalur_akses?: string; // 'Masjid' | 'Pusat' | dst.
   id_jalur_akses?: string; // id masjid untuk user masjid
   avatar?: string;
-  id_level?: number; // 1 = Admin Pusat, 2 = Admin Masjid, 3 = Petugas (seed)
+  id_level?: number; // 1=Admin Pusat, 2=Admin Masjid, 3=Petugas, 11=Admin Daerah, 12=Admin Kab, 13=Admin KUA (seed; id 4/5/6 SUDAH dipakai data legacy lain — jangan dipakai ulang)
   id_labels?: number; // 1 = Admin, 2 = Petugas, 3 = Jamaah (seed)
   nohp?: string;
   jk?: string;
   alamat?: string;
   status_aktif?: number;
+  // Scope wilayah untuk Admin Daerah (id_provinsi)/Kab (+id_kabupaten_kota)/
+  // KUA (+id_kecamatan) — akun Kab/KUA menyimpan hierarki lengkap.
+  id_provinsi?: number;
+  id_kabupaten_kota?: number;
+  id_kecamatan?: number;
   // Backward compat (beberapa kode lama membaca field ini)
   role?: UserRole;
   id_masjid?: string;
@@ -201,10 +217,22 @@ export function inferRoleFromUser(user: Partial<UserProfile> | null | undefined)
   // Backward compat jika suatu saat backend mengirim field role — tapi tolak
   // nilai lama (mis. 'petugas'/'admin-pusat' dari localStorage sesi lama) agar
   // tidak menghasilkan role invalid yang membuat redirect/guard rusak.
-  if (user.role && (user.role === 'admin-masjid' || user.role === 'admin-baznas')) {
+  const KNOWN_ROLES: UserRole[] = [
+    'admin-masjid', 'admin-baznas', 'admin-daerah', 'admin-kab', 'admin-kua',
+  ];
+  if (user.role && KNOWN_ROLES.includes(user.role)) {
     return user.role;
   }
   if (user.jalur_akses === 'Pusat') {
+    // Role ber-scope wilayah — dibedakan murni dari id_level. Admin KUA punya
+    // opsi login terpisah, tapi tetap di-infer di sini supaya session-restore
+    // (`GET /me`) dan sesi lama tetap menghasilkan role yang benar.
+    // id 11/12/13 mengikuti baris `levels` legacy yang sudah ada di DB
+    // (Admin BAZNAS Provinsi/Kabupaten Kota) — JANGAN diubah ke 4/5/6, id itu
+    // sudah dipakai data legacy lain (Anggota/Admin Masjid/Admin Monitor Masjid).
+    if (user.id_level === 11) return 'admin-daerah';
+    if (user.id_level === 12) return 'admin-kab';
+    if (user.id_level === 13) return 'admin-kua';
     return 'admin-baznas';
   }
   // Semua akun dengan jalur Masjid (level 2/3) kini dipetakan sebagai Admin Masjid
@@ -260,11 +288,17 @@ export interface MasjidOption {
 export const ROLE_LABELS: Record<UserRole, string> = {
   'admin-masjid': 'Admin Masjid',
   'admin-baznas': 'Admin BAZNAS',
+  'admin-daerah': 'Admin Daerah',
+  'admin-kab': 'Admin Kab',
+  'admin-kua': 'Admin KUA',
 };
 
 export const ROLE_DASHBOARD_ROUTES: Record<UserRole, string> = {
   'admin-masjid': '/dashboard',
   'admin-baznas': '/dashboard-baznas',
+  'admin-daerah': '/dashboard-daerah',
+  'admin-kab': '/dashboard-kab',
+  'admin-kua': '/dashboard-kua',
 };
 
 export interface SidebarMenuItem {

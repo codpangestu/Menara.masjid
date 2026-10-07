@@ -1,4 +1,4 @@
-import { Search, ChevronLeft, ChevronRight, Loader2, Filter } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Loader2, Filter, Calendar } from 'lucide-react';
 
 export interface Column<T> {
   key: string;
@@ -23,6 +23,16 @@ export interface TableFilter {
   onChange: (value: string) => void;
 }
 
+/** Filter rentang tanggal opsional — dirender setelah dropdown filter. */
+export interface TableDateRange {
+  startValue: string;
+  endValue: string;
+  onStartChange: (value: string) => void;
+  onEndChange: (value: string) => void;
+  startLabel?: string;
+  endLabel?: string;
+}
+
 interface DataTableProps<T> {
   columns: Column<T>[];
   data: T[];
@@ -32,6 +42,8 @@ interface DataTableProps<T> {
   searchQuery?: string;
   /** Filter dropdown opsional — dirender di toolbar setelah search. */
   filters?: TableFilter[];
+  /** Filter rentang tanggal opsional — dirender setelah dropdown filter. */
+  dateRange?: TableDateRange;
   onAdd?: () => void;
   addLabel?: string;
   showEntries?: boolean;
@@ -51,6 +63,7 @@ export default function DataTable<T extends Record<string, any>>({
   onSearch,
   searchQuery = '',
   filters = [],
+  dateRange,
   onAdd,
   addLabel,
   showEntries = true,
@@ -105,6 +118,31 @@ export default function DataTable<T extends Record<string, any>>({
                     ))}
                   </select>
                 ))}
+              </div>
+            )}
+            {dateRange && (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="hidden sm:flex items-center gap-1.5 text-xs font-medium text-text-gray" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                  <Calendar size={13} />
+                  Tanggal
+                </span>
+                <input
+                  type="date"
+                  value={dateRange.startValue}
+                  onChange={(e) => dateRange.onStartChange(e.target.value)}
+                  title={dateRange.startLabel || 'Tanggal Mulai'}
+                  className="px-2 py-2 border border-[#D4D4D4] rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#28A71A]/20 focus:border-[#28A71A]"
+                  style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                />
+                <span className="text-xs text-text-gray" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>s/d</span>
+                <input
+                  type="date"
+                  value={dateRange.endValue}
+                  onChange={(e) => dateRange.onEndChange(e.target.value)}
+                  title={dateRange.endLabel || 'Tanggal Selesai'}
+                  className="px-2 py-2 border border-[#D4D4D4] rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#28A71A]/20 focus:border-[#28A71A]"
+                  style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                />
               </div>
             )}
             {onAdd && (

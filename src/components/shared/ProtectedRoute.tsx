@@ -1,6 +1,6 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
-import type { UserRole } from '../../types';
+import { ROLE_DASHBOARD_ROUTES, type UserRole } from '../../types';
 import { Loader2 } from 'lucide-react';
 
 interface ProtectedRouteProps {
@@ -36,10 +36,7 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
 
   // Role not allowed → redirect to appropriate dashboard
   if (allowedRoles && role && !allowedRoles.includes(role)) {
-    if (role === 'admin-baznas') {
-      return <Navigate to="/dashboard-baznas" replace />;
-    }
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to={ROLE_DASHBOARD_ROUTES[role]} replace />;
   }
 
   return <>{children}</>;
