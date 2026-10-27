@@ -15,6 +15,10 @@ import PublicationMenu from './pages/PublicationMenu';
 import DonasiPage from './pages/DonasiPage';
 import KontakPage from './pages/KontakPage';
 import ToolsPage from './pages/ToolsPage';
+import KebijakanPrivasiPage from './pages/KebijakanPrivasiPage';
+import DisclaimerPage from './pages/DisclaimerPage';
+import SyaratKetentuanPage from './pages/SyaratKetentuanPage';
+import FounderPage from './pages/FounderPage';
 import AjukanMasjidPage from './pages/AjukanMasjidPage';
 import MasjidDetailPage from './pages/MasjidDetailPage';
 import PengajuanMasjidApproval from './pages/dashboard/PengajuanMasjidApproval';
@@ -100,6 +104,14 @@ function App() {
           <Route path="ajukan-masjid" element={<AjukanMasjidPage />} />
           <Route path="kalkulator-pinjaman" element={<KalkulatorPinjamanPage />} />
           <Route path="skoring-pinjaman" element={<SkoringPinjamanPage />} />
+          <Route path="kebijakan-privasi" element={<KebijakanPrivasiPage />} />
+          <Route path="kebijakan/kebijakan-privasi" element={<KebijakanPrivasiPage />} />
+          <Route path="disclaimer" element={<DisclaimerPage />} />
+          <Route path="disclaimer/disclaimer" element={<DisclaimerPage />} />
+          <Route path="syarat-ketentuan" element={<SyaratKetentuanPage />} />
+          <Route path="syarat-dan-ketentuan" element={<SyaratKetentuanPage />} />
+          <Route path="hak-cipta" element={<SyaratKetentuanPage />} />
+          <Route path="founder" element={<FounderPage />} />
         </Route>
 
         {/* ========== AUTH ========== */}

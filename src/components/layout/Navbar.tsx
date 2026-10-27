@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 const navLinks = [
   { name: 'Beranda', path: '/' },
-  { name: 'Tentang Kami', path: '/tentang' },
+  // { name: 'Tentang Kami', path: '/tentang' },
   { name: 'Masjid', path: '/masjid' },
   { name: 'Publikasi', path: '/kajian' },
 ];
@@ -86,8 +86,8 @@ export default function Navbar() {
       {/* ===== MAIN NAVBAR ===== */}
       <nav
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${isScrolled
-            ? 'bg-white/90 backdrop-blur-xl shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)]'
-            : 'bg-white'
+          ? 'bg-white/90 backdrop-blur-xl shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)]'
+          : 'bg-white'
           }`}
       >
         <div
@@ -142,8 +142,8 @@ export default function Navbar() {
                   >
                     <span
                       className={`relative z-10 text-sm font-medium transition-colors duration-200 ${active
-                          ? 'text-[#28A71A]'
-                          : 'text-[#555555] group-hover:text-[#303030]'
+                        ? 'text-[#28A71A]'
+                        : 'text-[#555555] group-hover:text-[#303030]'
                         }`}
                       style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
                     >
@@ -152,8 +152,8 @@ export default function Navbar() {
                     {/* Active indicator */}
                     <span
                       className={`absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 bg-[#28A71A] rounded-full transition-all duration-300 ${active
-                          ? 'w-5 opacity-100'
-                          : 'w-0 opacity-0 group-hover:w-3 group-hover:opacity-50'
+                        ? 'w-5 opacity-100'
+                        : 'w-0 opacity-0 group-hover:w-3 group-hover:opacity-50'
                         }`}
                     />
                   </Link>
@@ -176,20 +176,20 @@ export default function Navbar() {
                   {navSecondaryLinks.map((link) => {
                     const target = linkTarget(link);
                     return (
-                    <Link
-                      key={link.path}
-                      to={target.to}
-                      state={target.state}
-                      className={`flex items-center gap-2 px-4 py-2.5 text-sm transition-colors duration-150 ${isActive(link.path)
+                      <Link
+                        key={link.path}
+                        to={target.to}
+                        state={target.state}
+                        className={`flex items-center gap-2 px-4 py-2.5 text-sm transition-colors duration-150 ${isActive(link.path)
                           ? 'text-[#28A71A] bg-[#EAF6E8]'
                           : 'text-[#555555] hover:bg-[#F0F4F8] hover:text-[#303030]'
-                        }`}
-                      style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-                    >
-                      {link.name === 'Donasi' && <Heart size={14} />}
-                      {link.name === 'Microfinance' && <HandCoins size={14} />}
-                      {link.name}
-                    </Link>
+                          }`}
+                        style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                      >
+                        {link.name === 'Donasi' && <Heart size={14} />}
+                        {link.name === 'Microfinance' && <HandCoins size={14} />}
+                        {link.name}
+                      </Link>
                     );
                   })}
                 </div>
@@ -229,8 +229,8 @@ export default function Navbar() {
             <div className="relative w-5 h-5">
               <span
                 className={`absolute left-0 block h-0.5 bg-[#303030] rounded-full transition-all duration-300 ${isOpen
-                    ? 'top-1/2 w-5 -translate-y-1/2 rotate-45'
-                    : 'top-0 w-5'
+                  ? 'top-1/2 w-5 -translate-y-1/2 rotate-45'
+                  : 'top-0 w-5'
                   }`}
               />
               <span
@@ -239,8 +239,8 @@ export default function Navbar() {
               />
               <span
                 className={`absolute left-0 block h-0.5 bg-[#303030] rounded-full transition-all duration-300 ${isOpen
-                    ? 'top-1/2 w-5 -translate-y-1/2 -rotate-45'
-                    : 'bottom-0 w-5'
+                  ? 'top-1/2 w-5 -translate-y-1/2 -rotate-45'
+                  : 'bottom-0 w-5'
                   }`}
               />
             </div>
@@ -251,8 +251,8 @@ export default function Navbar() {
       {/* ===== MOBILE MENU (Slide-in from right) ===== */}
       <div
         className={`fixed inset-0 z-[70] lg:hidden transition-opacity duration-300 ${isOpen
-            ? 'opacity-100 pointer-events-auto'
-            : 'opacity-0 pointer-events-none'
+          ? 'opacity-100 pointer-events-auto'
+          : 'opacity-0 pointer-events-none'
           }`}
       >
         {/* Overlay */}
@@ -296,8 +296,8 @@ export default function Navbar() {
                     state={target.state}
                     onClick={() => setIsOpen(false)}
                     className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${active
-                        ? 'bg-[#EAF6E8] text-[#28A71A]'
-                        : 'text-[#555] hover:bg-[#F0F4F8] hover:text-[#303030]'
+                      ? 'bg-[#EAF6E8] text-[#28A71A]'
+                      : 'text-[#555] hover:bg-[#F0F4F8] hover:text-[#303030]'
                       }`}
                     style={{
                       fontFamily: "'Plus Jakarta Sans', sans-serif",
